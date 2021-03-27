@@ -1,0 +1,169 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"path"
+	"testing"
+	"time"
+
+	"github.com/google/go-cmp/cmp"
+)
+
+func TestMain(t *testing.T) {
+
+}
+
+func TestDayLog(t *testing.T) {
+	playTimes := map[string]*playTime{
+		"Ralea2": {
+			PlayerName:       "Ralea2",
+			DurationOnServer: time.Minute * 10,
+			LatestStart:      time.Date(2021, 03, 24, 12, 35, 0, 0, time.UTC),
+			LatestEnd:        time.Date(2021, 03, 24, 12, 45, 0, 0, time.UTC),
+		},
+	}
+	refTime := time.Date(2021, 3, 25, 9, 30, 0, 0, time.UTC)
+
+	p := t.TempDir()
+	writeOutDayLog(playTimes, refTime, p)
+	filePath := path.Join(p, "playtime_log-2021-03-25.json")
+
+	oFile, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		fmt.Println(filePath)
+		fmt.Println(err)
+		t.Fail()
+	}
+
+	var ptLog playTimeDayLog
+	json.Unmarshal(oFile, &ptLog)
+
+	fmt.Println(string(oFile))
+	exp := playTimeDayLog{
+		Playtimes: []*playTime{
+			{
+				PlayerName:       "Ralea2",
+				DurationOnServer: time.Minute * 10,
+				LatestStart:      time.Date(2021, 03, 24, 12, 35, 0, 0, time.UTC),
+				LatestEnd:        time.Date(2021, 03, 24, 12, 45, 0, 0, time.UTC),
+			},
+		},
+		Day: refTime,
+	}
+
+	diff := cmp.Diff(exp, ptLog)
+	if diff != "" {
+		fmt.Println(diff)
+		t.Fail()
+	}
+
+}
+
+func TestPlayername(t *testing.T) {
+	type Case struct {
+		Line string
+		Name string
+	}
+
+	cases := []Case{
+		{
+			Line: "[13:13:26] [Server thread/INFO]: Ralea2 joined the game",
+			Name: "Ralea2",
+		},
+		{
+			Line: "[13:15:52] [Server thread/INFO]: adidfr joined the game",
+			Name: "adidfr",
+		},
+		{
+			Line: "[09:54:41] [Server thread/INFO]: Ralea2 left the game",
+			Name: "Ralea2",
+		},
+		{
+			Line: "[13:22:28] [Server thread/INFO]: adidfr left the game",
+			Name: "adidfr",
+		},
+		{
+			Line: "",
+			Name: "",
+		},
+	}
+
+	for _, c := range cases {
+		pName := getPlayerName(c.Line)
+		if pName != c.Name {
+			t.Fail()
+			fmt.Println(pName, "!=", c.Name)
+		}
+	}
+
+}
+
+func TestHandleLine(t *testing.T) {
+	type Case struct {
+		Line            string
+		PlayTimesBefore map[string]*playTime
+		CurrentTime     time.Time
+		PlayTimesAfter  map[string]*playTime
+	}
+
+	cases := []Case{
+		{
+			Line:            "[13:13:26] [Server thread/INFO]: Ralea2 joined the game",
+			PlayTimesBefore: make(map[string]*playTime),
+			CurrentTime:     time.Date(2021, 03, 24, 12, 35, 0, 0, time.UTC),
+			PlayTimesAfter: map[string]*playTime{
+				"Ralea2": {
+					PlayerName:       "Ralea2",
+					DurationOnServer: 0,
+					LatestStart:      time.Date(2021, 03, 24, 12, 35, 0, 0, time.UTC),
+					LatestEnd:        time.Time{},
+				},
+			},
+		},
+		{
+			Line: "[13:13:26] [Server thread/INFO]: Ralea2 left the game",
+			PlayTimesBefore: map[string]*playTime{
+				"Ralea2": {
+					PlayerName:       "Ralea2",
+					DurationOnServer: 0,
+					LatestStart:      time.Date(2021, 03, 24, 12, 35, 0, 0, time.UTC),
+					LatestEnd:        time.Time{},
+				},
+			},
+			CurrentTime: time.Date(2021, 03, 24, 12, 45, 0, 0, time.UTC),
+			PlayTimesAfter: map[string]*playTime{
+				"Ralea2": {
+					PlayerName:       "Ralea2",
+					DurationOnServer: time.Minute * 10,
+					LatestStart:      time.Date(2021, 03, 24, 12, 35, 0, 0, time.UTC),
+					LatestEnd:        time.Date(2021, 03, 24, 12, 45, 0, 0, time.UTC),
+				},
+			},
+		},
+		{
+			Line:            "[13:13:26] [Server thread/INFO]: Ralea2 left the game",
+			PlayTimesBefore: map[string]*playTime{},
+			CurrentTime:     time.Date(2021, 03, 24, 0, 31, 0, 0, time.UTC),
+			PlayTimesAfter: map[string]*playTime{
+				"Ralea2": {
+					PlayerName:       "Ralea2",
+					DurationOnServer: time.Minute*30 + time.Second*59,
+					LatestStart:      time.Date(2021, 03, 24, 0, 0, 1, 0, time.UTC),
+					LatestEnd:        time.Date(2021, 03, 24, 0, 31, 0, 0, time.UTC),
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+
+		handleLine(c.Line, c.CurrentTime, c.PlayTimesBefore)
+		diff := cmp.Diff(c.PlayTimesBefore, c.PlayTimesAfter)
+		if diff != "" {
+			fmt.Println(diff)
+			t.Fail()
+		}
+	}
+}

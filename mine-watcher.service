@@ -1,0 +1,8 @@
+[Unit]
+Description=Minecraft Players PlayTime logger
+
+[Service]
+ExecStart=/root/mine-watcher --outputLogPath="/root/playtimes/" --minecraftLogPath="/root/data/logs/latest.log"
+
+[Install]
+WantedBy=multi-user.target
