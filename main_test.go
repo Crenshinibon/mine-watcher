@@ -107,12 +107,13 @@ func TestDayLog(t *testing.T) {
 
 	fmt.Println(string(oFile))
 	exp := playTimeDayLog{
-		Playtimes: []*playTime{
+		Playtimes: []*readablePlayTime{
 			{
-				PlayerName:       "Ralea2",
-				DurationOnServer: time.Minute * 10,
-				LatestStart:      time.Date(2021, 03, 24, 12, 35, 0, 0, time.UTC),
-				LatestEnd:        time.Date(2021, 03, 24, 12, 45, 0, 0, time.UTC),
+				PlayerName:         "Ralea2",
+				DurationOnServerNS: time.Minute * 10,
+				LatestStart:        time.Date(2021, 03, 24, 12, 35, 0, 0, time.UTC),
+				LatestEnd:          time.Date(2021, 03, 24, 12, 45, 0, 0, time.UTC),
+				DurationOnServer:   "10m0s",
 			},
 		},
 		Day: refTime,

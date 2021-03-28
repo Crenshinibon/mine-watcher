@@ -17,15 +17,23 @@ import (
 )
 
 type playTimeDayLog struct {
-	Day       time.Time   `json:"day"`
-	Playtimes []*playTime `json:"playTimes"`
+	Day       time.Time           `json:"day"`
+	Playtimes []*readablePlayTime `json:"playTimes"`
+}
+
+type readablePlayTime struct {
+	PlayerName         string        `json:"playerName"`
+	LatestStart        time.Time     `json:"latestStart"`
+	LatestEnd          time.Time     `json:"latestEnd"`
+	DurationOnServer   string        `json:"readableDurationOnServer"`
+	DurationOnServerNS time.Duration `json:"durationOnServer"`
 }
 
 type playTime struct {
-	PlayerName       string        `json:"playerName"`
-	DurationOnServer time.Duration `json:"durationOnServer"`
-	LatestStart      time.Time     `json:"latestStart"`
-	LatestEnd        time.Time     `json:"latestEnd"`
+	PlayerName       string
+	DurationOnServer time.Duration
+	LatestStart      time.Time
+	LatestEnd        time.Time
 }
 
 func fixEnding(playTimesMap map[string]*playTime, t time.Time) {
@@ -41,10 +49,17 @@ func fixEnding(playTimesMap map[string]*playTime, t time.Time) {
 }
 
 func writeOutDayLog(playTimesMap map[string]*playTime, currentDay time.Time, interrupt bool, p string) {
-	var pt []*playTime
+	var pt []*readablePlayTime
 	for _, v := range playTimesMap {
-		fmt.Println(v)
-		pt = append(pt, v)
+		rpt := &readablePlayTime{
+			PlayerName:         v.PlayerName,
+			LatestStart:        v.LatestStart,
+			LatestEnd:          v.LatestEnd,
+			DurationOnServer:   fmt.Sprintf("%s", v.DurationOnServer),
+			DurationOnServerNS: v.DurationOnServer,
+		}
+
+		pt = append(pt, rpt)
 	}
 
 	l := playTimeDayLog{
