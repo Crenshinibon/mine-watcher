@@ -15,6 +15,71 @@ func TestMain(t *testing.T) {
 
 }
 
+func TestFixEnding(t *testing.T) {
+	type Case struct {
+		CaseName        string
+		PlayTimesBefore map[string]*playTime
+		CurrentTime     time.Time
+		PlayTimesAfter  map[string]*playTime
+	}
+
+	cases := []Case{
+		{
+			//missing end ... still playing?
+			CaseName: "Missing end",
+			PlayTimesBefore: map[string]*playTime{
+				"Ralea2": {
+					PlayerName:       "Ralea2",
+					DurationOnServer: 0,
+					LatestStart:      time.Date(2021, 03, 24, 12, 59, 59, 999999999, time.UTC),
+					LatestEnd:        time.Time{},
+				},
+			},
+			CurrentTime: time.Date(2021, 03, 24, 12, 35, 0, 0, time.UTC),
+			PlayTimesAfter: map[string]*playTime{
+				"Ralea2": {
+					PlayerName:       "Ralea2",
+					DurationOnServer: time.Hour * 11,
+					LatestStart:      time.Date(2021, 03, 24, 12, 59, 59, 999999999, time.UTC),
+					LatestEnd:        time.Date(2021, 03, 24, 23, 59, 59, 999999999, time.UTC),
+				},
+			},
+		},
+		{
+			//old end ... still playing?
+			CaseName: "Old End",
+			PlayTimesBefore: map[string]*playTime{
+				"Ralea2": {
+					PlayerName:       "Ralea2",
+					DurationOnServer: time.Hour * 2,
+					LatestStart:      time.Date(2021, 03, 24, 12, 59, 59, 999999999, time.UTC),
+					LatestEnd:        time.Date(2021, 03, 24, 11, 35, 0, 0, time.UTC),
+				},
+			},
+			CurrentTime: time.Date(2021, 03, 24, 12, 35, 0, 0, time.UTC),
+			PlayTimesAfter: map[string]*playTime{
+				"Ralea2": {
+					PlayerName:       "Ralea2",
+					DurationOnServer: time.Hour*2 + (time.Hour * 11),
+					LatestStart:      time.Date(2021, 03, 24, 12, 59, 59, 999999999, time.UTC),
+					LatestEnd:        time.Date(2021, 03, 24, 23, 59, 59, 999999999, time.UTC),
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		fixEnding(c.PlayTimesBefore, c.CurrentTime)
+
+		diff := cmp.Diff(c.PlayTimesAfter, c.PlayTimesBefore)
+		if diff != "" {
+			fmt.Printf("%s: %s\n", c.CaseName, diff)
+			t.Fail()
+		}
+	}
+
+}
+
 func TestDayLog(t *testing.T) {
 	playTimes := map[string]*playTime{
 		"Ralea2": {

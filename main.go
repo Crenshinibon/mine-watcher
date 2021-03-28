@@ -26,6 +26,18 @@ type playTime struct {
 	LatestEnd        time.Time     `json:"latestEnd"`
 }
 
+func fixEnding(playTimesMap map[string]*playTime, t time.Time) {
+	beforeMidnight := time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 999999999, time.UTC)
+	for playerName, playTime := range playTimesMap {
+		if playTime.LatestStart.After(playTime.LatestEnd) {
+			playTime.LatestEnd = beforeMidnight
+			playTime.DurationOnServer += beforeMidnight.Sub(playTime.LatestStart)
+
+			playTimesMap[playerName] = playTime
+		}
+	}
+}
+
 func writeOutDayLog(playTimesMap map[string]*playTime, currentDay time.Time, p string) {
 	var pt []*playTime
 	for _, v := range playTimesMap {
@@ -120,6 +132,8 @@ func main() {
 
 		if current.YearDay() != t.YearDay() {
 			fmt.Printf("New day new file: %v\n", current)
+			fixEnding(playTimes, current)
+
 			writeOutDayLog(playTimes, current, *timeLogPath)
 
 			playTimes = make(map[string]*playTime)
