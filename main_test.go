@@ -240,8 +240,8 @@ func TestHandleLine(t *testing.T) {
 			PlayTimesAfter: map[string]*playTime{
 				"Ralea2": {
 					PlayerName:       "Ralea2",
-					DurationOnServer: time.Minute*30 + time.Second*59,
-					LatestStart:      time.Date(2021, 03, 24, 0, 0, 1, 0, time.UTC),
+					DurationOnServer: time.Minute * 31,
+					LatestStart:      time.Date(2021, 03, 24, 0, 0, 0, 0, time.UTC),
 					LatestEnd:        time.Date(2021, 03, 24, 0, 31, 0, 0, time.UTC),
 				},
 			},

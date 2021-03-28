@@ -25,8 +25,8 @@ type readablePlayTime struct {
 	PlayerName         string        `json:"playerName"`
 	LatestStart        time.Time     `json:"latestStart"`
 	LatestEnd          time.Time     `json:"latestEnd"`
-	DurationOnServer   string        `json:"readableDurationOnServer"`
-	DurationOnServerNS time.Duration `json:"durationOnServer"`
+	DurationOnServer   string        `json:"durationOnServer"`
+	DurationOnServerNS time.Duration `json:"durationOnServerNS"`
 }
 
 type playTime struct {
@@ -60,6 +60,7 @@ func writeOutDayLog(playTimesMap map[string]*playTime, currentDay time.Time, int
 		}
 
 		pt = append(pt, rpt)
+
 	}
 
 	l := playTimeDayLog{
@@ -102,7 +103,7 @@ func handleLine(line string, t time.Time, playTimes map[string]*playTime) {
 		current, exists := playTimes[playerName]
 
 		if !exists {
-			midnight := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 1, 0, time.UTC)
+			midnight := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 			current = &playTime{
 				PlayerName:  playerName,
 				LatestStart: midnight,
