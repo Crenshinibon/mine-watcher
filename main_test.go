@@ -92,7 +92,7 @@ func TestDayLog(t *testing.T) {
 	refTime := time.Date(2021, 3, 25, 9, 30, 0, 0, time.UTC)
 
 	p := t.TempDir()
-	writeOutDayLog(playTimes, refTime, p)
+	writeOutDayLog(playTimes, refTime, false, p)
 	filePath := path.Join(p, "playtime_log-2021-03-25.json")
 
 	oFile, err := ioutil.ReadFile(filePath)
@@ -124,6 +124,31 @@ func TestDayLog(t *testing.T) {
 		t.Fail()
 	}
 
+}
+
+func TestDayLogInterrupt(t *testing.T) {
+	playTimes := map[string]*playTime{
+		"Ralea2": {
+			PlayerName:       "Ralea2",
+			DurationOnServer: time.Minute * 10,
+			LatestStart:      time.Date(2021, 03, 24, 12, 35, 0, 0, time.UTC),
+			LatestEnd:        time.Date(2021, 03, 24, 12, 45, 0, 0, time.UTC),
+		},
+	}
+	refTime := time.Date(2021, 3, 25, 9, 30, 0, 0, time.UTC)
+
+	p := t.TempDir()
+	writeOutDayLog(playTimes, refTime, true, p)
+	filePath := path.Join(p, "playtime_log-2021-03-25T09:30:00-interrupt.json")
+
+	_, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		existing, _ := ioutil.ReadDir(p)
+		fmt.Println(existing[0].Name())
+		fmt.Println(filePath)
+		fmt.Println(err)
+		t.Fail()
+	}
 }
 
 func TestPlayername(t *testing.T) {

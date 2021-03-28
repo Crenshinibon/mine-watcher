@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/signal"
 	"path"
 	"regexp"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/hpcloud/tail"
@@ -38,7 +40,7 @@ func fixEnding(playTimesMap map[string]*playTime, t time.Time) {
 	}
 }
 
-func writeOutDayLog(playTimesMap map[string]*playTime, currentDay time.Time, p string) {
+func writeOutDayLog(playTimesMap map[string]*playTime, currentDay time.Time, interrupt bool, p string) {
 	var pt []*playTime
 	for _, v := range playTimesMap {
 		fmt.Println(v)
@@ -52,7 +54,13 @@ func writeOutDayLog(playTimesMap map[string]*playTime, currentDay time.Time, p s
 
 	j, _ := json.MarshalIndent(l, "", "")
 
-	filename := fmt.Sprintf(path.Join(p, "playtime_log-%v.json"), currentDay.Format("2006-01-02"))
+	var filename string
+	if interrupt {
+		filename = fmt.Sprintf(path.Join(p, "playtime_log-%v-interrupt.json"), currentDay.Format("2006-01-02T15:04:05"))
+	} else {
+		filename = fmt.Sprintf(path.Join(p, "playtime_log-%v.json"), currentDay.Format("2006-01-02"))
+	}
+
 	ioutil.WriteFile(filename, j, 0644)
 
 }
@@ -123,6 +131,20 @@ func main() {
 	current := time.Now()
 	playTimes := make(map[string]*playTime)
 
+	//write out the current data on sigint/sigterm
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(c, os.Interrupt, syscall.SIGINT)
+	go func() {
+		<-c
+
+		fixEnding(playTimes, current)
+		writeOutDayLog(playTimes, current, true, *timeLogPath)
+
+		os.Exit(1)
+	}()
+
+	//loop over incoming log lines
 	for logLine := range logTail.Lines {
 		fmt.Printf("Got new line: %v\n", logLine)
 		t := time.Now()
@@ -134,7 +156,7 @@ func main() {
 			fmt.Printf("New day new file: %v\n", current)
 			fixEnding(playTimes, current)
 
-			writeOutDayLog(playTimes, current, *timeLogPath)
+			writeOutDayLog(playTimes, current, false, *timeLogPath)
 
 			playTimes = make(map[string]*playTime)
 
